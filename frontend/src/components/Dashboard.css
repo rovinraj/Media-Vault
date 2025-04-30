@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.dashboard-container {
+  display: flex;
+  font-family: 'Inter', sans-serif;
+  width: 100%;
+  height: 100vh;
+}
+
+.sidebar {
+  position: relative;
+  width: 250px;
+  background-color: #1F2937;
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #1F2937;
+  padding: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 1.5rem;
+  padding-bottom: 1rem; /* tightened scroll padding */
+}
+
+.sidebar-section {
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 0.75rem;
+  color: #9CA3AF;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-bottom: 0.25rem;
+}
+
+.sidebar button .icon {
+  margin-right: 0.75rem;
+  font-size: 1rem;
+}
+
+.sidebar button:hover,
+.sidebar button.active {
+  background-color: #374151;
+}
+
+.create-list-button {
+  margin-top: 1rem;
+}
+
+.logout-button {
+  position: sticky;
+  bottom: 1.5rem; /* lifted the button up slightly */
+  display: flex;
+  align-items: center;
+  background-color: #1F2937;
+  border: none;
+  color: inherit;
+  padding: 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  z-index: 10;
+}
+
+.logout-button .icon {
+  margin-right: 0.75rem;
+  font-size: 1rem;
+}
+
+.logout-button:hover {
+  background-color: #374151;
+}
+
+.main-content {
+  flex: 1;
+  background-color: #F9FAFB;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.welcome {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+
+.sidebar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 5.5rem;             /* ← raise this block up to cover your button */
+  background-color: #091526; /* same as your sidebar */
+  pointer-events: none;
+  z-index: 5;               /* below the logout-button (which is z-index:10) */
+}
