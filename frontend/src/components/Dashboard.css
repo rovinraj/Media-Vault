@@ -37,7 +37,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   padding: 0 1.5rem;
-  padding-bottom: 1rem; /* tightened scroll padding */
+  padding-bottom: 3rem;
 }
 
 .sidebar-section {
@@ -78,12 +78,12 @@ html, body {
 }
 
 .create-list-button {
-  margin-top: 1rem;
+  margin-top: -1rem;
 }
 
 .logout-button {
   position: sticky;
-  bottom: 1.5rem; /* lifted the button up slightly */
+  bottom: 1.5rem;
   display: flex;
   align-items: center;
   background-color: #1F2937;
@@ -127,8 +127,8 @@ html, body {
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 5.5rem;             /* ← raise this block up to cover your button */
-  background-color: #091526; /* same as your sidebar */
+  height: 5.5rem;
+  background-color: #091526;
   pointer-events: none;
-  z-index: 5;               /* below the logout-button (which is z-index:10) */
+  z-index: 5;
 }

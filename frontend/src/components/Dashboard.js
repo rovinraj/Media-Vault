@@ -1,3 +1,4 @@
+// Dashboard.js
 import React, { useState } from 'react';
 import {
   FaHome,
@@ -16,13 +17,15 @@ import './Dashboard.css';
 
 export default function Dashboard({ user, onLogout }) {
   const [nav, setNav] = useState('Home');
-  const [mediaType, setMediaType] = useState('music');
+  const [mediaType, setMediaType] = useState(null);
+  const [listName, setListName] = useState(null);
   const [file, setFile] = useState(null);
 
+  // when you click on a file to view
   if (file) {
     return (
       <MediaViewer
-        type={mediaType}
+        type={mediaType || listName}
         file={file}
         goBack={() => setFile(null)}
       />
@@ -34,62 +37,73 @@ export default function Dashboard({ user, onLogout }) {
     { name: 'Bookmarks', icon: <FaBookmark /> },
     { name: 'Settings', icon: <FaCog /> }
   ];
-
   const mediaItems = [
     { type: 'music', label: 'Music', icon: <FaMusic /> },
     { type: 'videos', label: 'Videos', icon: <FaVideo /> },
     { type: 'photos', label: 'Photos', icon: <FaImage /> }
   ];
+  // static lists until you add creation logic
+  const listItems = ['Favorites', 'Recently Added', 'Test'];
 
-  const listItems = ['All Media', 'Favorites', 'Recently Added'];
+  const handleNav = name => {
+    setNav(name);
+    setMediaType(null);
+    setListName(null);
+  };
+  const handleMedia = (type, label) => {
+    setNav(label);
+    setMediaType(type);
+    setListName(null);
+  };
+  const handleList = name => {
+    setNav(name);
+    setListName(name);
+    setMediaType(null);
+  };
 
   return (
     <div className="dashboard-container">
       <aside className="sidebar">
         <div className="sidebar-header">MediaVault</div>
-
         <div className="sidebar-content">
           <div className="sidebar-section">
             <div className="section-title">Navigation</div>
-            {navItems.map(item => (
+            {navItems.map(i => (
               <button
-                key={item.name}
-                className={nav === item.name ? 'active' : ''}
-                onClick={() => setNav(item.name)}
+                key={i.name}
+                className={nav === i.name ? 'active' : ''}
+                onClick={() => handleNav(i.name)}
               >
-                <span className="icon">{item.icon}</span>
-                <span className="label">{item.name}</span>
+                <span className="icon">{i.icon}</span>
+                <span className="label">{i.name}</span>
               </button>
             ))}
           </div>
 
           <div className="sidebar-section">
             <div className="section-title">Media Types</div>
-            {mediaItems.map(item => (
+            {mediaItems.map(i => (
               <button
-                key={item.type}
-                className={mediaType === item.type ? 'active' : ''}
-                onClick={() => {
-                  setMediaType(item.type);
-                  setNav('All Media');
-                }}
+                key={i.type}
+                className={nav === i.label ? 'active' : ''}
+                onClick={() => handleMedia(i.type, i.label)}
               >
-                <span className="icon">{item.icon}</span>
-                <span className="label">{item.label}</span>
+                <span className="icon">{i.icon}</span>
+                <span className="label">{i.label}</span>
               </button>
             ))}
           </div>
 
           <div className="sidebar-section">
             <div className="section-title">Lists</div>
-            {listItems.map(list => (
+            {listItems.map(name => (
               <button
-                key={list}
-                className={nav === list ? 'active' : ''}
-                onClick={() => setNav(list)}
+                key={name}
+                className={nav === name ? 'active' : ''}
+                onClick={() => handleList(name)}
               >
                 <span className="icon"><FaList /></span>
-                <span className="label">{list}</span>
+                <span className="label">{name}</span>
               </button>
             ))}
           </div>
@@ -97,7 +111,7 @@ export default function Dashboard({ user, onLogout }) {
           <button
             className="create-list-button"
             onClick={() => {
-              /* handle create new list */
+              /* Future: open your “Create New List” modal */
             }}
           >
             <span className="icon"><FaPlus /></span>
@@ -113,14 +127,18 @@ export default function Dashboard({ user, onLogout }) {
 
       <main className="main-content">
         {nav === 'Home' && <h1 className="welcome">Welcome, {user}</h1>}
-        {['All Media', 'Favorites', 'Recently Added'].includes(nav) && (
-          <h1>{nav}</h1>
+
+        {/* whenever a mediaType or listName is set, show MediaList */}
+        {(mediaType || listName) && (
+          <MediaList
+            mediaType={mediaType}
+            listName={listName}
+            onPlay={setFile}
+          />
         )}
+
         {nav === 'Bookmarks' && <h1>Bookmarks</h1>}
-        {nav === 'Settings' && <h1>Settings</h1>}
-        {mediaType && nav === 'All Media' && (
-          <MediaList type={mediaType} onPlay={setFile} />
-        )}
+        {nav === 'Settings'  && <h1>Settings</h1>}
       </main>
     </div>
   );

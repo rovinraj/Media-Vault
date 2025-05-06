@@ -7,8 +7,8 @@ from mutagen.id3 import ID3
 # Configuration
 UPLOAD_DIR = os.path.join(os.getcwd(), 'uploads')
 MEDIA_TYPES = ['music', 'videos', 'photos']
-USER_FILE = 'users.csv'
-LISTS_FILE = 'lists.csv'
+USER_FILE = os.path.join('data', 'users.csv')
+LISTS_FILE = os.path.join('data', 'lists.csv')
 
 app = Flask(__name__)
 CORS(app)
