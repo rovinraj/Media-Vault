@@ -1,0 +1,132 @@
+/* MediaViewer.css */
+
+/* 1) Container is a column flex that fills the viewport */
+.mv-container {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+    background: #111827;
+    color: #fff;
+    overflow: hidden;       /* no scrolling */
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* 2) Top header */
+  .mv-header-top {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+  }
+  .mv-back,
+  .mv-settings {
+    background: none;
+    border: none;
+    color: #3B82F6;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  
+  /* 3) Title */
+  .mv-title {
+    flex: 0 0 auto;
+    text-align: center;
+    margin: 0;
+    padding: 0.25rem;
+    font-size: 1.25rem;
+  }
+  
+  /* 4) Artwork region */
+  .mv-artwork {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;      /* vertical centering */
+    justify-content: center;  /* horizontal centering */
+    margin: 0 auto;
+    max-width: 80%;
+    /* reserve space for header + title + controls (adjust 180px as needed) */
+    max-height: calc(100vh - 180px);
+    background: transparent;
+  }
+  
+  /* 5) Music placeholder */
+  .mv-music-placeholder {
+    width: 300px;
+    height: 300px;
+    background: #1F2937;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .mv-music-placeholder .mv-art-icon {
+    font-size: 4rem;
+    color: #6B7280;
+  }
+  
+  /* 6) Video/image styling */
+  .mv-media {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  
+  /* 7) Controls bar at bottom */
+  .mv-controls {
+    flex: 0 0 auto;
+    background: #111827;
+  }
+  
+  /* 8) Scrubber row */
+  .mv-scrub-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+  }
+  .mv-time {
+    width: 3rem;
+    text-align: center;
+  }
+  .mv-scrubber {
+    flex: 1;
+  }
+  
+  /* 9) Button row */
+  .mv-actions {
+    position: relative;       /* for centering .mv-buttons */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 2rem;
+  }
+  .mv-action-left,
+  .mv-volume {
+    display: flex;
+    align-items: center;
+  }
+  .mv-buttons {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  .mv-volume-slider {
+    width: 100px;
+  }
+  .mv-full {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: inherit;
+    cursor: pointer;
+  }
+  

@@ -104,6 +104,31 @@ def upload_media(media_type):
 def serve_media(media_type, filename):
     return send_from_directory(os.path.join(UPLOAD_DIR, media_type), filename)
 
+# DELETE media file + thumbnail
+@app.route('/api/<media_type>/<path:filename>', methods=['DELETE'])
+def delete_media(media_type, filename):
+    if media_type not in MEDIA_TYPES:
+        return jsonify({'error': 'Bad media type'}), 400
+
+    # delete the main file
+    file_path = os.path.join(UPLOAD_DIR, media_type, filename)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            return jsonify({'error': f'Could not remove file: {e}'}), 500
+
+    # delete thumbnail for music
+    if media_type == 'music':
+        thumb_path = os.path.join(UPLOAD_DIR, media_type, filename + '.jpg')
+        if os.path.exists(thumb_path):
+            try:
+                os.remove(thumb_path)
+            except:
+                pass
+
+    return jsonify({'success': True})
+
 # Serve corresponding thumbnail if exists
 @app.route('/api/<media_type>/thumbnail/<filename>', methods=['GET'])
 def serve_thumbnail(media_type, filename):

@@ -11,7 +11,8 @@ import {
   FaImage,
   FaList,
   FaPlus,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaTrash
 } from 'react-icons/fa';
 import MediaList from './MediaList';
 import MediaViewer from './MediaViewer';
@@ -27,6 +28,7 @@ export default function Dashboard({ user, onLogout }) {
   const [playType, setPlayType] = useState(null);
   const [lists, setLists] = useState([]);
 
+  // load custom lists
   useEffect(() => {
     axios.get(`${API_BASE}/api/lists`)
       .then(res => setLists(res.data))
@@ -36,8 +38,7 @@ export default function Dashboard({ user, onLogout }) {
   const handleNav = name => {
     setNav(name);
     setMediaType(null);
-    if (name === 'Bookmarks') setListName('Bookmarks');
-    else setListName(null);
+    setListName(name === 'Bookmarks' ? 'Bookmarks' : null);
   };
 
   const handleMedia = (type, label) => {
@@ -60,6 +61,20 @@ export default function Dashboard({ user, onLogout }) {
       setLists(prev => [...prev, name]);
     } catch (err) {
       alert(err.response?.data?.error || 'Error creating list');
+    }
+  };
+
+  const deleteList = async name => {
+    if (!window.confirm(`Delete list "${name}"? This cannot be undone.`)) return;
+    try {
+      await axios.delete(`${API_BASE}/api/lists/${encodeURIComponent(name)}`);
+      setLists(prev => prev.filter(l => l !== name));
+      if (nav === name) {
+        setNav('Home');
+        setListName(null);
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error deleting list');
     }
   };
 
@@ -93,6 +108,7 @@ export default function Dashboard({ user, onLogout }) {
         <div className="sidebar-header">MediaVault</div>
         <div className="sidebar-content">
 
+          {/* Navigation */}
           <div className="sidebar-section">
             <div className="section-title">Navigation</div>
             {navItems.map(i => (
@@ -107,6 +123,7 @@ export default function Dashboard({ user, onLogout }) {
             ))}
           </div>
 
+          {/* Media Types */}
           <div className="sidebar-section">
             <div className="section-title">Media Types</div>
             {mediaItems.map(i => (
@@ -121,26 +138,43 @@ export default function Dashboard({ user, onLogout }) {
             ))}
           </div>
 
+          {/* Custom Lists with Delete */}
           <div className="sidebar-section">
             <div className="section-title">Lists</div>
             {lists.map(name => (
-              <button
+              <div
                 key={name}
-                className={nav === name ? 'active' : ''}
-                onClick={() => handleList(name)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}
               >
-                <span className="icon"><FaList /></span>
-                <span className="label">{name}</span>
-              </button>
+                <button
+                  className={nav === name ? 'active' : ''}
+                  onClick={() => handleList(name)}
+                >
+                  <span className="icon"><FaList /></span>
+                  <span className="label">{name}</span>
+                </button>
+                <FaTrash
+                  style={{ marginLeft: '8px', cursor: 'pointer' }}
+                  title={`Delete list "${name}"`}
+                  onClick={() => deleteList(name)}
+                />
+              </div>
             ))}
           </div>
 
+          {/* Create New List */}
           <button className="create-list-button" onClick={createList}>
             <span className="icon"><FaPlus /></span>
             <span className="label">Create New List</span>
           </button>
+
         </div>
 
+        {/* Logout */}
         <button className="logout-button" onClick={onLogout}>
           <span className="icon"><FaSignOutAlt /></span>
           <span className="label">Logout</span>
@@ -154,6 +188,7 @@ export default function Dashboard({ user, onLogout }) {
           <MediaList
             mediaType={mediaType}
             listName={listName}
+            lists={lists}                // ← pass down updated lists
             onPlay={(filename, type) => {
               setPlayFile(filename);
               setPlayType(type);

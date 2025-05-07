@@ -1,6 +1,6 @@
 // MediaList.js
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import {
   FaUpload,
@@ -22,11 +22,15 @@ function inferType(filename) {
   return 'music';
 }
 
-export default function MediaList({ mediaType, listName, onPlay }) {
+export default function MediaList({
+  mediaType,
+  listName,
+  lists,           // ← now comes from Dashboard
+  onPlay
+}) {
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState('');
   const [modal, setModal] = useState({ visible: false, item: '' });
-  const [lists, setLists] = useState([]);
 
   // Determine API endpoint
   let endpoint = '';
@@ -35,20 +39,14 @@ export default function MediaList({ mediaType, listName, onPlay }) {
   else if (listName) endpoint = `list/${encodeURIComponent(listName)}`;
 
   // Fetch items
-  useEffect(() => {
+  React.useEffect(() => {
     if (!endpoint) return;
     axios.get(`${API_BASE}/api/${endpoint}`)
       .then(res => setItems(res.data || []))
       .catch(() => setItems([]));
   }, [endpoint]);
 
-  // Fetch custom lists
-  useEffect(() => {
-    axios.get(`${API_BASE}/api/lists`)
-      .then(res => setLists(res.data || []))
-      .catch(() => setLists([]));
-  }, []);
-
+  // Upload handler
   const uploadHandler = e => {
     if (!mediaType) return;
     const file = e.target.files[0];
@@ -59,6 +57,21 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       .then(() => axios.get(`${API_BASE}/api/${mediaType}`))
       .then(r => setItems(r.data || []))
       .catch(console.error);
+  };
+
+  // Delete media file
+  const deleteMedia = name => {
+    if (!mediaType) return;
+    if (!window.confirm(`Delete "${name}" permanently?`)) return;
+    axios.delete(`${API_BASE}/api/${mediaType}/${encodeURIComponent(name)}`)
+      .then(() => {
+        setItems(prev => prev.filter(i => {
+          const nm = typeof i === 'string' ? i : i.filename;
+          return nm !== name;
+        }));
+        alert(`Deleted "${name}"`);
+      })
+      .catch(() => alert('Error deleting media'));
   };
 
   const openAdd = name => setModal({ visible: true, item: name });
@@ -91,9 +104,11 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       `${API_BASE}/api/bookmarks/${encodeURIComponent(type)}/${encodeURIComponent(name)}`
     )
     .then(() => {
-      setItems(prev => prev.filter(item =>
-        !(item.media_type === type && item.filename === name)
-      ));
+      setItems(prev =>
+        prev.filter(item =>
+          !(item.media_type === type && item.filename === name)
+        )
+      );
       alert(`Removed bookmark "${name}"`);
     })
     .catch(() => alert('Error removing bookmark'));
@@ -104,12 +119,16 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       `${API_BASE}/api/list/${encodeURIComponent(listName)}/${encodeURIComponent(name)}`
     )
     .then(() => {
-      setItems(prev => prev.filter(n => n !== name));
+      setItems(prev => prev.filter(i => {
+        const nm = typeof i === 'string' ? i : i.filename;
+        return nm !== name;
+      }));
       alert(`Removed "${name}" from "${listName}"`);
     })
     .catch(() => alert('Error removing from list'));
   };
 
+  // Filter by search
   const filtered = items.filter(item => {
     const nm = typeof item === 'string' ? item : item.filename;
     return nm.toLowerCase().includes(query.toLowerCase());
@@ -138,17 +157,13 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       <div className="media-cards">
         {filtered.map(item => {
           const name = typeof item === 'string' ? item : item.filename;
-          
-          // Determine actual media type
           let type;
           if (listName === 'Bookmarks') type = item.media_type;
           else if (mediaType) type = mediaType;
           else type = inferType(name);
 
-          // Thumbnail/preview logic
           let thumbContent;
           if (type === 'music') {
-            // Default grey background + centered play icon
             thumbContent = <div className="icon">▶</div>;
           } else if (type === 'photos') {
             thumbContent = (
@@ -157,7 +172,7 @@ export default function MediaList({ mediaType, listName, onPlay }) {
                 alt={name}
               />
             );
-          } else { // videos
+          } else {
             thumbContent = (
               <>
                 <video
@@ -182,19 +197,26 @@ export default function MediaList({ mediaType, listName, onPlay }) {
               <div className="info">
                 <span className="name">{name}</span>
                 <div className="controls">
-                  {listName === 'Bookmarks' ? (
-                    <FaTrash onClick={() => removeBookmark(name, type)} />
-                  ) : listName ? (
-                    <FaTrash onClick={() => removeFromList(name)} />
-                  ) : mediaType ? (
+                  {mediaType && !listName && (
                     <>
+                      <FaTrash
+                        style={{ marginRight: '0.5rem' }}
+                        title="Delete file"
+                        onClick={() => deleteMedia(name)}
+                      />
                       <FaPlus onClick={() => openAdd(name)} />
                       <FaBookmark
                         style={{ marginLeft: '0.5rem' }}
                         onClick={() => bookmark(name)}
                       />
                     </>
-                  ) : null}
+                  )}
+                  {listName === 'Bookmarks' && (
+                    <FaTrash onClick={() => removeBookmark(name, type)} />
+                  )}
+                  {listName && listName !== 'Bookmarks' && (
+                    <FaTrash onClick={() => removeFromList(name)} />
+                  )}
                 </div>
               </div>
             </div>
@@ -209,7 +231,9 @@ export default function MediaList({ mediaType, listName, onPlay }) {
             {lists.length > 0 ? (
               <ul>
                 {lists.map(l => (
-                  <li key={l} onClick={() => addToList(l)}>{l}</li>
+                  <li key={l} onClick={() => addToList(l)}>
+                    {l}
+                  </li>
                 ))}
               </ul>
             ) : (
