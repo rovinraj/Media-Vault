@@ -1,5 +1,7 @@
 // Dashboard.js
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import {
   FaHome,
   FaBookmark,
@@ -15,19 +17,66 @@ import MediaList from './MediaList';
 import MediaViewer from './MediaViewer';
 import './Dashboard.css';
 
+const API_BASE = 'http://localhost:5000';
+
 export default function Dashboard({ user, onLogout }) {
   const [nav, setNav] = useState('Home');
   const [mediaType, setMediaType] = useState(null);
   const [listName, setListName] = useState(null);
-  const [file, setFile] = useState(null);
+  const [playFile, setPlayFile] = useState(null);
+  const [playType, setPlayType] = useState(null);
+  const [lists, setLists] = useState([]);
 
-  // when you click on a file to view
-  if (file) {
+  // Fetch custom lists on mount
+  useEffect(() => {
+    axios.get(`${API_BASE}/api/lists`)
+      .then(res => setLists(res.data))
+      .catch(console.error);
+  }, []);
+
+  const handleNav = name => {
+    setNav(name);
+    setMediaType(null);
+    if (name === 'Bookmarks') {
+      setListName('Bookmarks');
+    } else {
+      setListName(null);
+    }
+  };
+
+  const handleMedia = (type, label) => {
+    setNav(label);
+    setMediaType(type);
+    setListName(null);
+  };
+
+  const handleList = name => {
+    setNav(name);
+    setListName(name);
+    setMediaType(null);
+  };
+
+  const createList = async () => {
+    const name = prompt('Enter new list name:');
+    if (!name) return;
+    try {
+      await axios.post(`${API_BASE}/api/lists`, { list: name });
+      setLists(prev => [...prev, name]);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error creating list');
+    }
+  };
+
+  // Show media viewer if a file is chosen
+  if (playFile) {
     return (
       <MediaViewer
-        type={mediaType || listName}
-        file={file}
-        goBack={() => setFile(null)}
+        type={playType}
+        file={playFile}
+        goBack={() => {
+          setPlayFile(null);
+          setPlayType(null);
+        }}
       />
     );
   }
@@ -42,30 +91,13 @@ export default function Dashboard({ user, onLogout }) {
     { type: 'videos', label: 'Videos', icon: <FaVideo /> },
     { type: 'photos', label: 'Photos', icon: <FaImage /> }
   ];
-  // static lists until you add creation logic
-  const listItems = ['Favorites', 'Recently Added', 'Test'];
-
-  const handleNav = name => {
-    setNav(name);
-    setMediaType(null);
-    setListName(null);
-  };
-  const handleMedia = (type, label) => {
-    setNav(label);
-    setMediaType(type);
-    setListName(null);
-  };
-  const handleList = name => {
-    setNav(name);
-    setListName(name);
-    setMediaType(null);
-  };
 
   return (
     <div className="dashboard-container">
       <aside className="sidebar">
         <div className="sidebar-header">MediaVault</div>
         <div className="sidebar-content">
+
           <div className="sidebar-section">
             <div className="section-title">Navigation</div>
             {navItems.map(i => (
@@ -96,7 +128,7 @@ export default function Dashboard({ user, onLogout }) {
 
           <div className="sidebar-section">
             <div className="section-title">Lists</div>
-            {listItems.map(name => (
+            {lists.map(name => (
               <button
                 key={name}
                 className={nav === name ? 'active' : ''}
@@ -110,9 +142,7 @@ export default function Dashboard({ user, onLogout }) {
 
           <button
             className="create-list-button"
-            onClick={() => {
-              /* Future: open your “Create New List” modal */
-            }}
+            onClick={createList}
           >
             <span className="icon"><FaPlus /></span>
             <span className="label">Create New List</span>
@@ -128,17 +158,18 @@ export default function Dashboard({ user, onLogout }) {
       <main className="main-content">
         {nav === 'Home' && <h1 className="welcome">Welcome, {user}</h1>}
 
-        {/* whenever a mediaType or listName is set, show MediaList */}
         {(mediaType || listName) && (
           <MediaList
             mediaType={mediaType}
             listName={listName}
-            onPlay={setFile}
+            onPlay={(filename, type) => {
+              setPlayFile(filename);
+              setPlayType(type);
+            }}
           />
         )}
 
-        {nav === 'Bookmarks' && <h1>Bookmarks</h1>}
-        {nav === 'Settings'  && <h1>Settings</h1>}
+        {nav === 'Settings' && <h1>Settings</h1>}
       </main>
     </div>
   );

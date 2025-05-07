@@ -1,4 +1,7 @@
-import os, csv
+# app.py
+
+import os
+import csv
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -9,11 +12,12 @@ UPLOAD_DIR = os.path.join(os.getcwd(), 'uploads')
 MEDIA_TYPES = ['music', 'videos', 'photos']
 USER_FILE = os.path.join('data', 'users.csv')
 LISTS_FILE = os.path.join('data', 'lists.csv')
+BOOKMARKS_FILE = os.path.join('data', 'bookmarks.csv')
 
 app = Flask(__name__)
 CORS(app)
 
-# Ensure folders and user CSV exist
+# Ensure folders and CSVs exist
 def ensure_setup():
     os.makedirs(UPLOAD_DIR, exist_ok=True)
     for t in MEDIA_TYPES:
@@ -24,6 +28,9 @@ def ensure_setup():
     if not os.path.exists(LISTS_FILE):
         with open(LISTS_FILE, 'w', newline='') as f:
             csv.writer(f).writerow(['list','name'])
+    if not os.path.exists(BOOKMARKS_FILE):
+        with open(BOOKMARKS_FILE, 'w', newline='') as f:
+            csv.writer(f).writerow(['media_type', 'filename'])
 
 ensure_setup()
 
@@ -99,23 +106,54 @@ def serve_thumbnail(media_type, filename):
     thumb = filename + '.jpg'
     return send_from_directory(os.path.join(UPLOAD_DIR, media_type), thumb)
 
+# Helper to read all list names
 def get_all_lists():
     with open(LISTS_FILE) as f:
         return sorted({row['list'] for row in csv.DictReader(f)})
 
+# GET all lists
 @app.route('/api/lists', methods=['GET'])
 def get_lists():
     return jsonify(get_all_lists())
 
+# POST to create a new list
+@app.route('/api/lists', methods=['POST'])
+def create_list():
+    data = request.get_json()
+    list_name = data.get('list')
+    if not list_name:
+        return jsonify({'error': 'Missing list name'}), 400
+    existing = get_all_lists()
+    if list_name in existing:
+        return jsonify({'error': 'List exists'}), 400
+    with open(LISTS_FILE, 'a', newline='') as f:
+        csv.writer(f).writerow([list_name, ''])
+    return jsonify({'success': True}), 201
+
+# DELETE an entire list
+@app.route('/api/lists/<list_name>', methods=['DELETE'])
+def delete_list(list_name):
+    # filter out all entries matching this list_name
+    with open(LISTS_FILE) as f:
+        rows = [r for r in csv.DictReader(f) if r['list'] != list_name]
+    with open(LISTS_FILE, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['list','name'])
+        for r in rows:
+            writer.writerow([r['list'], r['name']])
+    return jsonify({'success': True})
+
+# GET items in one list (ignore blank names)
 @app.route('/api/list/<list_name>', methods=['GET'])
 def list_list(list_name):
     result = []
     with open(LISTS_FILE) as f:
         for row in csv.DictReader(f):
-            if row['list'] == list_name:
+            if row['list'] == list_name and row['name'].strip():
                 result.append(row['name'])
     return jsonify(result)
 
+# POST to add to a list
 @app.route('/api/list/<list_name>/<filename>', methods=['POST'])
 def add_to_list(list_name, filename):
     entries = []
@@ -126,17 +164,58 @@ def add_to_list(list_name, filename):
             csv.writer(f).writerow([list_name, filename])
     return jsonify({'success': True})
 
+# DELETE from a list
 @app.route('/api/list/<list_name>/<filename>', methods=['DELETE'])
 def remove_from_list(list_name, filename):
     rows = []
     with open(LISTS_FILE) as f:
-        rows = [r for r in csv.DictReader(f) if not (r['list']==list_name and r['name']==filename)]
+        rows = [r for r in csv.DictReader(f)
+                if not (r['list']==list_name and r['name']==filename)]
     with open(LISTS_FILE, 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(['list','name'])
         for r in rows:
             writer.writerow([r['list'], r['name']])
     return jsonify({'success': True})
+
+# GET all bookmarks
+@app.route('/api/bookmarks', methods=['GET'])
+def get_bookmarks():
+    with open(BOOKMARKS_FILE) as f:
+        # returns [{ media_type: "...", filename: "..."}, ...]
+        return jsonify(list(csv.DictReader(f)))
+
+# POST to add a bookmark
+@app.route('/api/bookmarks', methods=['POST'])
+def add_bookmark():
+    data = request.get_json()
+    mt, fn = data.get('mediaType'), data.get('filename')
+    if not mt or not fn:
+        return jsonify({'error': 'Missing mediaType or filename'}), 400
+
+    # avoid duplicates
+    with open(BOOKMARKS_FILE) as f:
+        if any(r['media_type']==mt and r['filename']==fn for r in csv.DictReader(f)):
+            return jsonify({'error':'Already bookmarked'}), 400
+
+    with open(BOOKMARKS_FILE, 'a', newline='') as f:
+        csv.writer(f).writerow([mt, fn])
+    return jsonify({'success': True}), 201
+
+# DELETE to remove a bookmark
+@app.route('/api/bookmarks/<media_type>/<path:filename>', methods=['DELETE'])
+def remove_bookmark(media_type, filename):
+    rows = []
+    with open(BOOKMARKS_FILE) as f:
+        rows = [r for r in csv.DictReader(f)
+                if not (r['media_type']==media_type and r['filename']==filename)]
+    with open(BOOKMARKS_FILE, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['media_type','filename'])
+        for r in rows:
+            writer.writerow([r['media_type'], r['filename']])
+    return jsonify({'success': True})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
