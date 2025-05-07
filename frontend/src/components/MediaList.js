@@ -13,61 +13,56 @@ import './MediaList.css';
 
 const API_BASE = 'http://localhost:5000';
 
+// Utility to infer media type by file extension
+function inferType(filename) {
+  const ext = filename.split('.').pop().toLowerCase();
+  if (ext === 'mp3') return 'music';
+  if (['jpg','jpeg','png','gif','bmp','webp'].includes(ext)) return 'photos';
+  if (['mp4','mov','avi','mkv','webm'].includes(ext)) return 'videos';
+  return 'music';
+}
+
 export default function MediaList({ mediaType, listName, onPlay }) {
   const [items, setItems] = useState([]);
   const [query, setQuery] = useState('');
   const [modal, setModal] = useState({ visible: false, item: '' });
   const [lists, setLists] = useState([]);
 
-  // Determine endpoint
+  // Determine API endpoint
   let endpoint = '';
-  if (listName === 'Bookmarks') {
-    endpoint = 'bookmarks';
-  } else if (mediaType) {
-    endpoint = mediaType;
-  } else if (listName) {
-    endpoint = `list/${encodeURIComponent(listName)}`;
-  }
+  if (listName === 'Bookmarks') endpoint = 'bookmarks';
+  else if (mediaType) endpoint = mediaType;
+  else if (listName) endpoint = `list/${encodeURIComponent(listName)}`;
 
-  // Load items
+  // Fetch items
   useEffect(() => {
     if (!endpoint) return;
     axios.get(`${API_BASE}/api/${endpoint}`)
       .then(res => setItems(res.data || []))
-      .catch(err => {
-        console.error('Fetch error:', err);
-        setItems([]);
-      });
+      .catch(() => setItems([]));
   }, [endpoint]);
 
-  // Load custom lists
+  // Fetch custom lists
   useEffect(() => {
     axios.get(`${API_BASE}/api/lists`)
       .then(res => setLists(res.data || []))
-      .catch(err => {
-        console.error('Error fetching lists:', err);
-        setLists([]);
-      });
+      .catch(() => setLists([]));
   }, []);
 
-  // Upload
   const uploadHandler = e => {
     if (!mediaType) return;
     const file = e.target.files[0];
     if (!file) return;
     const form = new FormData();
     form.append('file', file);
-
     axios.post(`${API_BASE}/api/${mediaType}/upload`, form)
       .then(() => axios.get(`${API_BASE}/api/${mediaType}`))
       .then(r => setItems(r.data || []))
       .catch(console.error);
   };
 
-  // Open add modal
   const openAdd = name => setModal({ visible: true, item: name });
 
-  // Add to list
   const addToList = list => {
     axios.post(
       `${API_BASE}/api/list/${encodeURIComponent(list)}/${encodeURIComponent(modal.item)}`
@@ -76,52 +71,34 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       setModal({ visible: false, item: '' });
       alert(`Added "${modal.item}" to "${list}"`);
     })
-    .catch(err => {
-      console.error('Add to list error:', err);
-      alert('Error adding to list');
-    });
+    .catch(() => alert('Error adding to list'));
   };
 
-  // Bookmark
   const bookmark = name => {
-    axios.post(`${API_BASE}/api/bookmarks`, {
-      mediaType,
-      filename: name
-    })
-    .then(() => {
-      alert(`Bookmarked "${name}"`);
-    })
-    .catch(err => {
-      const msg = err.response?.data?.error;
-      if (msg === 'Already bookmarked') {
-        alert(`"${name}" is already bookmarked.`);
-      } else {
-        console.error('Bookmark error:', err);
-        alert('Error bookmarking');
-      }
-    });
+    axios.post(`${API_BASE}/api/bookmarks`, { mediaType, filename: name })
+      .then(() => alert(`Bookmarked "${name}"`))
+      .catch(err => {
+        if (err.response?.data?.error === 'Already bookmarked') {
+          alert(`"${name}" is already bookmarked.`);
+        } else {
+          alert('Error bookmarking');
+        }
+      });
   };
 
-  // Remove bookmark
   const removeBookmark = (name, type) => {
     axios.delete(
       `${API_BASE}/api/bookmarks/${encodeURIComponent(type)}/${encodeURIComponent(name)}`
     )
     .then(() => {
-      setItems(prev =>
-        prev.filter(item =>
-          !(item.media_type === type && item.filename === name)
-        )
-      );
+      setItems(prev => prev.filter(item =>
+        !(item.media_type === type && item.filename === name)
+      ));
       alert(`Removed bookmark "${name}"`);
     })
-    .catch(err => {
-      console.error('Remove bookmark error:', err);
-      alert('Error removing bookmark');
-    });
+    .catch(() => alert('Error removing bookmark'));
   };
 
-  // Remove from custom list
   const removeFromList = name => {
     axios.delete(
       `${API_BASE}/api/list/${encodeURIComponent(listName)}/${encodeURIComponent(name)}`
@@ -130,13 +107,9 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       setItems(prev => prev.filter(n => n !== name));
       alert(`Removed "${name}" from "${listName}"`);
     })
-    .catch(err => {
-      console.error('Remove from list error:', err);
-      alert('Error removing from list');
-    });
+    .catch(() => alert('Error removing from list'));
   };
 
-  // Filtering
   const filtered = items.filter(item => {
     const nm = typeof item === 'string' ? item : item.filename;
     return nm.toLowerCase().includes(query.toLowerCase());
@@ -165,9 +138,37 @@ export default function MediaList({ mediaType, listName, onPlay }) {
       <div className="media-cards">
         {filtered.map(item => {
           const name = typeof item === 'string' ? item : item.filename;
-          const type = listName === 'Bookmarks'
-            ? item.media_type
-            : mediaType || 'music';
+          
+          // Determine actual media type
+          let type;
+          if (listName === 'Bookmarks') type = item.media_type;
+          else if (mediaType) type = mediaType;
+          else type = inferType(name);
+
+          // Thumbnail/preview logic
+          let thumbContent;
+          if (type === 'music') {
+            // Default grey background + centered play icon
+            thumbContent = <div className="icon">▶</div>;
+          } else if (type === 'photos') {
+            thumbContent = (
+              <img
+                src={`${API_BASE}/api/photos/${encodeURIComponent(name)}`}
+                alt={name}
+              />
+            );
+          } else { // videos
+            thumbContent = (
+              <>
+                <video
+                  src={`${API_BASE}/api/videos/${encodeURIComponent(name)}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  muted
+                />
+                <div className="icon">▶</div>
+              </>
+            );
+          }
 
           return (
             <div className="card" key={name}>
@@ -176,7 +177,7 @@ export default function MediaList({ mediaType, listName, onPlay }) {
                 onClick={() => onPlay(name, type)}
                 style={{ cursor: modal.visible ? 'default' : 'pointer' }}
               >
-                <div className="icon">▶</div>
+                {thumbContent}
               </div>
               <div className="info">
                 <span className="name">{name}</span>
@@ -208,9 +209,7 @@ export default function MediaList({ mediaType, listName, onPlay }) {
             {lists.length > 0 ? (
               <ul>
                 {lists.map(l => (
-                  <li key={l} onClick={() => addToList(l)}>
-                    {l}
-                  </li>
+                  <li key={l} onClick={() => addToList(l)}>{l}</li>
                 ))}
               </ul>
             ) : (

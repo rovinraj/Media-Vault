@@ -82,15 +82,19 @@ def list_media(media_type):
     if media_type not in MEDIA_TYPES:
         return jsonify({'error':'Bad type'}), 400
     files = os.listdir(os.path.join(UPLOAD_DIR, media_type))
-    return jsonify([f for f in files if not f.lower().endswith('.jpg')])
+    if media_type == 'photos':
+        return jsonify(files)
+    else:
+        return jsonify([f for f in files if not f.lower().endswith('.jpg')])
 
-# Upload media and extract thumbnail if MP3
 @app.route('/api/<media_type>/upload', methods=['POST'])
 def upload_media(media_type):
     file = request.files['file']
-    fn = secure_filename(file.filename)
+    # just strip any path components—keep spaces and original characters
+    fn = os.path.basename(file.filename)
     save_path = os.path.join(UPLOAD_DIR, media_type, fn)
     file.save(save_path)
+    # for music, still extract the thumbnail (the .jpg will also keep spaces)
     if media_type == 'music':
         extract_thumbnail(save_path, media_type, fn)
     return jsonify({'success': True, 'filename': fn})

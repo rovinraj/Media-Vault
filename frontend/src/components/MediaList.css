@@ -73,12 +73,20 @@
     height: 100%;
     object-fit: cover;
   }
+
+  .thumb video {
+    background-color: #374151;  /* dark gray */
+  }
   
   .thumb .icon {
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     font-size: 2rem;
     color: #9CA3AF;
     z-index: 1;
+    pointer-events: none; /* so clicks go “through” to the thumb container */
   }
   
   .info {

@@ -27,7 +27,6 @@ export default function Dashboard({ user, onLogout }) {
   const [playType, setPlayType] = useState(null);
   const [lists, setLists] = useState([]);
 
-  // Fetch custom lists on mount
   useEffect(() => {
     axios.get(`${API_BASE}/api/lists`)
       .then(res => setLists(res.data))
@@ -37,11 +36,8 @@ export default function Dashboard({ user, onLogout }) {
   const handleNav = name => {
     setNav(name);
     setMediaType(null);
-    if (name === 'Bookmarks') {
-      setListName('Bookmarks');
-    } else {
-      setListName(null);
-    }
+    if (name === 'Bookmarks') setListName('Bookmarks');
+    else setListName(null);
   };
 
   const handleMedia = (type, label) => {
@@ -67,7 +63,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Show media viewer if a file is chosen
   if (playFile) {
     return (
       <MediaViewer
@@ -140,10 +135,7 @@ export default function Dashboard({ user, onLogout }) {
             ))}
           </div>
 
-          <button
-            className="create-list-button"
-            onClick={createList}
-          >
+          <button className="create-list-button" onClick={createList}>
             <span className="icon"><FaPlus /></span>
             <span className="label">Create New List</span>
           </button>
